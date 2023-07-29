@@ -88,3 +88,4 @@ nb-configuration.xml
 ## Project Specific
 ##############################
 ICC/
+inference-framework/checker-framework/checkers/infer-output
