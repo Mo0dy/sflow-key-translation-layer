@@ -15,7 +15,7 @@ INSTALL_DIR = $(INSTALL_TOP_DIR)/ORG/as220/tinySQL
 
 # If you have jikes from http://www.alphaworks.ibm.com/tech/jikes
 # installed use it (it is 10 times faster than javac):
-JAVAC = javac -deprecation -d $(INSTALL_TOP_DIR)
+JAVAC = $(JAVA_HOME)/bin/javac -deprecation -d $(INSTALL_TOP_DIR)
 #JAVAC = jikes -nowarn -d $(INSTALL_TOP_DIR)
 #JAVAC = jikes -nowarn -d $(INSTALL_TOP_DIR) -classpath=../../..:$(CLASSPATH)
 JAVA = java

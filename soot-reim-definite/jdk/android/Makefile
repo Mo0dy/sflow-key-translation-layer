@@ -8,7 +8,7 @@ CHECKERS = ../../
 CHECKERS_JAR = $(CHECKERS)/lib/soot-inference.jar
 ANDROID_JAR = android-all.jar
 
-JAVAC = javac -Xlint
+JAVAC = $(JAVA_HOME)/javac -Xlint
 
 #JAVA_HOME = /projects/proganalysis/Software/jdk1.6.0_27/
 RTJAR = $(JAVA_HOME)/jre/lib/rt.jar
