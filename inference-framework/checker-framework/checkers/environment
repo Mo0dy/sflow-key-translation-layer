@@ -1,0 +1,7 @@
+#!/usr/bin/fish
+
+set -x ANT_HOME /home/felix/_Uni/BA/programs/apache-ant-1.9.16
+set -x JAVA_HOME /usr/java/jdk1.6.0_45
+
+set -x fish_user_paths $ANT_HOME/bin $fish_user_paths
+set -x fish_user_paths $JAVA_HOME/bin $fish_user_paths
