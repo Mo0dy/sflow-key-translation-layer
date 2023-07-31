@@ -1,0 +1,5 @@
+#!/usr/bin/fish
+
+while inotifywait -r -e close_write .
+    ./my_build.sh
+end
