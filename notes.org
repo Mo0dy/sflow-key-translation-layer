@@ -1,0 +1,14 @@
+#+title: Notes
+
+* Entry Point
+type-inference/inference-framework/checker-framework/checkers/src/checkers/source/SourceChecker: =typeProcess()=
+- Creates the checker (=SourceVisitor=) (=createSourceVisitor=) /using reflection/
+- Callst the SourceVisitors =scan()= method
+
+* Type Hirarchy
+SFlowChecker < InferenceChecker < BaseTypeChecker < *SourceChecker*
+
+SFlowVisitor < BaseTypeVisitor<SFlowChecker> < *SourceVisitor* <Void, Void> < TreePathScanner<Void, Void>
+
+* Pretty Printing
+com.sun.tools.javac.tree.Pretty
