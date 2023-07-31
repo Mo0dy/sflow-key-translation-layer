@@ -83,7 +83,7 @@ public class Pretty extends JCTree.Visitor {
 
     /** Align code to be indented to left margin.
      */
-    void align() throws IOException {
+    protected void align() throws IOException {
         for (int i = 0; i < lmargin; i++) out.write(" ");
     }
 
