@@ -2,4 +2,4 @@
 
 source environment
 
-ant bindist && ./my_test.sh
+ant bindist-nojdk && ./my_test.sh
