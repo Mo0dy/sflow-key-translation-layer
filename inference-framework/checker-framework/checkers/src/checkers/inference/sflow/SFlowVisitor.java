@@ -1,6 +1,7 @@
 package checkers.inference.sflow;
 
 import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.MethodTree;
 import com.sun.source.util.TreePath;
 import kit.edu.translation.tools.TranslationPrinter;
 
@@ -22,6 +23,18 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     public void visit(TreePath path) {
         this.scan(path, null);
         this.create_key_file(path);
+    }
+
+    @Override
+    public Void visitMethod(MethodTree node, Void p) {
+        this.checker.resetWarningAndErrorFlags();
+        Void result = super.visitMethod(node, p);
+        if (this.checker.getWarningOrErrorSinceReset()) {
+            System.out.println("=====================================");
+            System.out.println("Error found in method: " + node.getName());
+            System.out.println("=====================================");
+        }
+        return result;
     }
 
     private void create_key_file(TreePath path) {
