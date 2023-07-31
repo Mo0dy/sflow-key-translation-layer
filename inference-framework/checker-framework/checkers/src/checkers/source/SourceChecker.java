@@ -112,6 +112,10 @@ public abstract class SourceChecker extends AbstractTypeProcessor {
     /** The line separator */
     private final static String LINE_SEPARATOR = System.getProperty("line.separator").intern();
 
+    /** Used to check if a warning has been issued since the last reset */
+    private boolean warningSinceReset = false;
+    private boolean errorSinceReset = false;
+
     /**
      * @return the {@link ProcessingEnvironment} that was supplied to this
      *         checker
@@ -658,13 +662,18 @@ public abstract class SourceChecker extends AbstractTypeProcessor {
             return;
 
         for (Result.DiagMessage msg : r.getDiagMessages()) {
-            if (r.isFailure())
+            if (r.isFailure()) {
+                this.errorSinceReset = true;
                 this.message(warns ? Diagnostic.Kind.MANDATORY_WARNING : Diagnostic.Kind.ERROR,
                         src, msg.getMessageKey(), msg.getArgs());
-            else if (r.isWarning())
+            }
+            else if (r.isWarning()) {
+                this.warningSinceReset = true;
                 this.message(Diagnostic.Kind.MANDATORY_WARNING, src, msg.getMessageKey(), msg.getArgs());
-            else
+            }
+            else {
                 this.message(Diagnostic.Kind.NOTE, src, msg.getMessageKey(), msg.getArgs());
+            }
         }
     }
 
@@ -929,5 +938,22 @@ public abstract class SourceChecker extends AbstractTypeProcessor {
     @Override
     public final SourceVersion getSupportedSourceVersion() {
         return SourceVersion.RELEASE_8;
+    }
+
+    public boolean getWarningSinceReset() {
+        return warningSinceReset;
+    }
+
+    public boolean getErrorSinceReset() {
+        return errorSinceReset;
+    }
+
+    public boolean getWarningOrErrorSinceReset() {
+        return warningSinceReset || errorSinceReset;
+    }
+
+    public void resetWarningAndErrorFlags() {
+        warningSinceReset = false;
+        errorSinceReset = false;
     }
 }
