@@ -1,5 +1,7 @@
 package checkers.inference.sflow;
 
+import checkers.tainting.quals.Tainted;
+import checkers.types.AnnotatedTypeMirror;
 import checkers.units.quals.A;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.MethodTree;
@@ -31,16 +33,67 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         this.create_key_file(path);
     }
 
+    private static String getDeterminesClause(List<String> taintedVars) {
+        StringBuilder result = new StringBuilder("determines ");
+        int size = taintedVars.size();
+        for (int i = 0; i < size; i++) {
+            result.append(taintedVars.get(i));
+            if (i != size - 1) {
+                result.append(", ");
+            }
+        }
+        result.append(" by ");
+        for (int i = 0; i < size; i++) {
+            result.append(taintedVars.get(i));
+            if (i != size - 1) {
+                result.append(", ");
+            }
+        }
+        result.append(";");
+        return result.toString();
+    }
+
+    private static List<String> makeJMLComment(List<String> lines) {
+        List<String> result = new ArrayList<String>();
+        result.add("/*@");
+        for (String line : lines) {
+            result.add("  @ " + line);
+        }
+        result.add("  @*/");
+        return result;
+    }
+
     @Override
     public Void visitMethod(MethodTree node, Void p) {
+        // @Felix: @TODO: what to do for poly types
+        // @Felix: @TODO: \result
+        // @Felix: @TODO: handle constructors
+        // @Felix: @TODO: handle class variables
+        // @Felix: @TODO: handle methods with no parameters
         this.checker.resetWarningAndErrorFlags();
         Void result = super.visitMethod(node, p);
-        if (this.checker.getWarningOrErrorSinceReset()) {
-            addDocumentationLine(node, "/* WARNING: This method contains errors. */");
-            System.out.println("=====================================");
-            System.out.println("Error found in method: " + node.getName());
-            System.out.println("=====================================");
+
+        AnnotatedTypeMirror.AnnotatedExecutableType methodType = atypeFactory.getAnnotatedType(node);
+        List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
+        List<String> taintedVariableNames = new ArrayList<String>();
+
+        for (int i = 0; i < parameterTypes.size(); i++) {
+            AnnotatedTypeMirror parameterType = parameterTypes.get(i);
+            if (parameterType.hasAnnotation(SFlowChecker.TAINTED)) {
+                taintedVariableNames.add(node.getParameters().get(i).getName().toString());
+            }
         }
+
+        String determinesClause = getDeterminesClause(taintedVariableNames);
+        List<String> jmlComment = makeJMLComment(Collections.singletonList(determinesClause));
+
+        if (this.checker.getWarningOrErrorSinceReset()) {
+            addDocumentationLine(node, "/* @Key: Verify this method. */");
+//            System.out.println("=====================================");
+//            System.out.println("Error found in method: " + node.getName());
+//            System.out.println("=====================================");
+        }
+        addDocumentationLines(node, jmlComment);
         return result;
     }
 
@@ -84,6 +137,16 @@ public class SFlowVisitor extends SFlowBaseVisitor {
             writer.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+
+    public void addDocumentationLines(MethodTree method, List<String> doc_lines) {
+        if (documentationStore.containsKey(method)) {
+            documentationStore.get(method).addAll(doc_lines);
+        } else {
+            documentationStore.put(method, new ArrayList<String>());
+            documentationStore.get(method).addAll(doc_lines);
         }
     }
 
