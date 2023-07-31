@@ -386,7 +386,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor {
         SourceVisitor<?, ?> visitor = null;
         try {
             visitor = createSourceVisitor(currentRoot);
-            visitor.scan(p, null);
+            visitor.visit(p);
         } catch (CheckerError ce) {
             // Only print something if there is a message attached.
             // If there is no additional message, the error was already output earlier.

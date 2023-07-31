@@ -53,4 +53,8 @@ public abstract class SourceVisitor<R, P> extends TreePathScanner<R, P> {
         // Ask the checker for the AnnotatedTypeFactory.
         this.atypeFactory = checker.createFactory(root);
     }
+
+    public void visit(TreePath path) {
+        this.scan(path, null);
+    }
 }
