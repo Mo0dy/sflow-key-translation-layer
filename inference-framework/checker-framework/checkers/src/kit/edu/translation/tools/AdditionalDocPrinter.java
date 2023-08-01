@@ -42,6 +42,8 @@ public class AdditionalDocPrinter extends Pretty {
     }
 
     public void printTreePath(TreePath path) throws IOException {
-        printExpr((JCTree) path.getLeaf());
+        this.printUnit((JCTree.JCCompilationUnit) path.getCompilationUnit(),
+                (JCTree.JCClassDecl) path.getLeaf());
+
     }
 }
