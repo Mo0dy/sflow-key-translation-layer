@@ -82,6 +82,13 @@ public class SFlowVisitor extends SFlowBaseVisitor {
                 safeVariableNames.add(((VariableTree) variableTree).getName().toString());
             }
         }
+
+        // recursively call for super class
+        if (classTree.getExtendsClause() != null) {
+            AnnotatedTypeMirror.AnnotatedDeclaredType superClassType = (AnnotatedTypeMirror.AnnotatedDeclaredType) atypeFactory.getAnnotatedType(classTree.getExtendsClause());
+            ClassTree superClassTree = (ClassTree) trees.getTree(superClassType.getUnderlyingType().asElement());
+            safeVariableNames.addAll(getSafeClassVariables(superClassTree));
+        }
         return safeVariableNames;
     }
 
