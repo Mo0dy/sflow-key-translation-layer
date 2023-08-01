@@ -1,8 +1,6 @@
 package checkers.inference.sflow;
 
-import checkers.tainting.quals.Tainted;
 import checkers.types.AnnotatedTypeMirror;
-import checkers.units.quals.A;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.util.TreePath;
@@ -33,22 +31,33 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         this.create_key_file(path);
     }
 
-    private static String getDeterminesClause(List<String> taintedVars) {
+    private static String getObservationExpression(List<String> vars) {
+        if (vars.size() == 0) {
+            return "\\nothing";
+        }
+
+        StringBuilder result = new StringBuilder();
+        int size = vars.size();
+        for (int i = 0; i < size; i++) {
+            result.append(vars.get(i));
+            if (i != size - 1) {
+                result.append(", ");
+            }
+        }
+        return result.toString();
+    }
+
+    private static String getDeterminesClause(List<String> safeVars, boolean safeResult) {
         StringBuilder result = new StringBuilder("determines ");
-        int size = taintedVars.size();
-        for (int i = 0; i < size; i++) {
-            result.append(taintedVars.get(i));
-            if (i != size - 1) {
-                result.append(", ");
-            }
+        if (safeResult) {
+            List<String> allSafeVars = new ArrayList<String>(safeVars);
+            allSafeVars.add("\\result");
+            result.append(getObservationExpression(allSafeVars));
+        } else {
+            result.append(getObservationExpression(safeVars));
         }
-        result.append(" by ");
-        for (int i = 0; i < size; i++) {
-            result.append(taintedVars.get(i));
-            if (i != size - 1) {
-                result.append(", ");
-            }
-        }
+        result.append(" \\by ");
+        result.append(getObservationExpression(safeVars));
         result.append(";");
         return result.toString();
     }
@@ -66,25 +75,36 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     @Override
     public Void visitMethod(MethodTree node, Void p) {
         // @Felix: @TODO: what to do for poly types
-        // @Felix: @TODO: \result
-        // @Felix: @TODO: handle constructors
         // @Felix: @TODO: handle class variables
-        // @Felix: @TODO: handle methods with no parameters
         this.checker.resetWarningAndErrorFlags();
         Void result = super.visitMethod(node, p);
 
         AnnotatedTypeMirror.AnnotatedExecutableType methodType = atypeFactory.getAnnotatedType(node);
         List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
-        List<String> taintedVariableNames = new ArrayList<String>();
+        List<String> safeVariableNames = new ArrayList<String>();
 
         for (int i = 0; i < parameterTypes.size(); i++) {
             AnnotatedTypeMirror parameterType = parameterTypes.get(i);
-            if (parameterType.hasAnnotation(SFlowChecker.TAINTED)) {
-                taintedVariableNames.add(node.getParameters().get(i).getName().toString());
+            if (parameterType.hasAnnotation(SFlowChecker.SAFE)) {
+                safeVariableNames.add(node.getParameters().get(i).getName().toString());
             }
         }
 
-        String determinesClause = getDeterminesClause(taintedVariableNames);
+
+        System.out.println("=====================================");
+        System.out.println("Method: " + node.getName());
+        System.out.println("Method type: " + methodType);
+        System.out.println("Return type: " + methodType.getReturnType());
+        System.out.println("Is constructor: " + node.getName().toString().equals("<init>"));
+        System.out.println("=====================================");
+
+        boolean safeResult = methodType.getReturnType().hasAnnotation(SFlowChecker.SAFE);
+        // Handle constructors
+        if (node.getName().toString().equals("<init>")) {
+            safeResult = false;
+        }
+
+        String determinesClause = getDeterminesClause(safeVariableNames, safeResult);
         List<String> jmlComment = makeJMLComment(Collections.singletonList(determinesClause));
 
         if (this.checker.getWarningOrErrorSinceReset()) {
@@ -102,6 +122,7 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     }
 
     private void create_key_file(TreePath path) {
+        // @Felix: @TODO: In the Checker remove the temp folder
         // @Felix: Output, FileCreation
         String originalPath = path.getCompilationUnit().getSourceFile().getName();
 
