@@ -1,11 +1,12 @@
 package checkers.inference.sflow;
 
 import checkers.types.AnnotatedTypeMirror;
-import com.sun.source.tree.CompilationUnitTree;
-import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.*;
+import checkers.util.TreeUtils;
 import com.sun.source.util.TreePath;
 import kit.edu.translation.tools.AdditionalDocPrinter;
 
+import javax.lang.model.element.Modifier;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -72,16 +73,38 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         return result;
     }
 
+    public List<String> getSafeClassVariables(ClassTree classTree) {
+        List<String> safeVariableNames = new ArrayList<String>();
+        // find all SAFE class variables:
+        for (Tree variableTree : classTree.getMembers()) {
+            AnnotatedTypeMirror variableType = atypeFactory.getAnnotatedType(variableTree);
+            if (variableType.hasAnnotation(SFlowChecker.SAFE)) {
+                safeVariableNames.add(((VariableTree) variableTree).getName().toString());
+            }
+        }
+        return safeVariableNames;
+    }
+
     @Override
     public Void visitMethod(MethodTree node, Void p) {
         // @Felix: @TODO: what to do for poly types
-        // @Felix: @TODO: handle class variables
         this.checker.resetWarningAndErrorFlags();
         Void result = super.visitMethod(node, p);
 
         AnnotatedTypeMirror.AnnotatedExecutableType methodType = atypeFactory.getAnnotatedType(node);
         List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
-        List<String> safeVariableNames = new ArrayList<String>();
+
+        // Find out if Method is static without using TreeUtils
+        boolean isStatic = node.getModifiers().getFlags().contains(Modifier.STATIC);
+
+        List<String> safeVariableNames;
+        if (isStatic) {
+            safeVariableNames = new ArrayList<String>();
+        } else {
+            // TODO: @Felix filter by used variables
+            ClassTree classTree = visitorState.getClassTree();
+            safeVariableNames = getSafeClassVariables(classTree);
+        }
 
         for (int i = 0; i < parameterTypes.size(); i++) {
             AnnotatedTypeMirror parameterType = parameterTypes.get(i);
@@ -91,16 +114,17 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         }
 
 
+
         System.out.println("=====================================");
         System.out.println("Method: " + node.getName());
         System.out.println("Method type: " + methodType);
         System.out.println("Return type: " + methodType.getReturnType());
-        System.out.println("Is constructor: " + node.getName().toString().equals("<init>"));
+        System.out.println("Is constructor: " + TreeUtils.isConstructor(node));
         System.out.println("=====================================");
 
         boolean safeResult = methodType.getReturnType().hasAnnotation(SFlowChecker.SAFE);
         // Handle constructors
-        if (node.getName().toString().equals("<init>")) {
+        if (TreeUtils.isConstructor(node)) {
             safeResult = false;
         }
 
@@ -160,7 +184,6 @@ public class SFlowVisitor extends SFlowBaseVisitor {
             throw new RuntimeException(e);
         }
     }
-
 
     public void addDocumentationLines(MethodTree method, List<String> doc_lines) {
         if (documentationStore.containsKey(method)) {
