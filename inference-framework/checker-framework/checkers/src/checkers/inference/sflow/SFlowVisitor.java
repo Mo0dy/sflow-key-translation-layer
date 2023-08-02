@@ -2,6 +2,7 @@ package checkers.inference.sflow;
 
 import checkers.types.AnnotatedTypeMirror;
 import com.sun.source.tree.*;
+import checkers.util.ElementUtils;
 import checkers.util.TreeUtils;
 import com.sun.source.util.TreePath;
 import kit.edu.translation.tools.AdditionalDocPrinter;
@@ -102,7 +103,7 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
 
         // Find out if Method is static without using TreeUtils
-        boolean isStatic = node.getModifiers().getFlags().contains(Modifier.STATIC);
+        boolean isStatic = ElementUtils.isStatic(TreeUtils.elementFromDeclaration(node));
 
         List<String> safeVariableNames;
         if (isStatic) {
