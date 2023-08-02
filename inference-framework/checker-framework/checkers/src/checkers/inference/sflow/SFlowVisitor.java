@@ -5,7 +5,9 @@ import com.sun.source.tree.*;
 import checkers.util.ElementUtils;
 import checkers.util.TreeUtils;
 import com.sun.source.util.TreePath;
+import kit.edu.translation.core.SafeObservationExpression;
 import kit.edu.translation.tools.AdditionalDocPrinter;
+import kit.edu.translation.tools.ObservationJMLTranslator;
 import kit.edu.translation.tools.TranslatedSourceWriter;
 
 import javax.lang.model.element.Modifier;
@@ -34,54 +36,13 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         this.create_key_file(path);
     }
 
-    private static String getObservationExpression(List<String> vars) {
-        if (vars.size() == 0) {
-            return "\\nothing";
-        }
-
-        StringBuilder result = new StringBuilder();
-        int size = vars.size();
-        for (int i = 0; i < size; i++) {
-            result.append(vars.get(i));
-            if (i != size - 1) {
-                result.append(", ");
-            }
-        }
-        return result.toString();
-    }
-
-    private static String getDeterminesClause(List<String> safeVars, boolean safeResult) {
-        StringBuilder result = new StringBuilder("determines ");
-        if (safeResult) {
-            List<String> allSafeVars = new ArrayList<String>(safeVars);
-            allSafeVars.add("\\result");
-            result.append(getObservationExpression(allSafeVars));
-        } else {
-            result.append(getObservationExpression(safeVars));
-        }
-        result.append(" \\by ");
-        result.append(getObservationExpression(safeVars));
-        result.append(";");
-        return result.toString();
-    }
-
-    private static List<String> makeJMLComment(List<String> lines) {
-        List<String> result = new ArrayList<String>();
-        result.add("/*@");
-        for (String line : lines) {
-            result.add("  @ " + line);
-        }
-        result.add("  @*/");
-        return result;
-    }
-
-    public List<String> getSafeClassVariables(ClassTree classTree) {
-        List<String> safeVariableNames = new ArrayList<String>();
+    public List<VariableTree> getSafeClassVariables(ClassTree classTree) {
+        List<VariableTree> safeVariableNames = new ArrayList<VariableTree>();
         // find all SAFE class variables:
         for (Tree variableTree : classTree.getMembers()) {
             AnnotatedTypeMirror variableType = atypeFactory.getAnnotatedType(variableTree);
             if (variableType.hasAnnotation(SFlowChecker.SAFE)) {
-                safeVariableNames.add(((VariableTree) variableTree).getName().toString());
+                safeVariableNames.add(((VariableTree) variableTree));
             }
         }
 
@@ -106,22 +67,21 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         // Find out if Method is static without using TreeUtils
         boolean isStatic = ElementUtils.isStatic(TreeUtils.elementFromDeclaration(node));
 
-        List<String> safeVariableNames;
+        List<VariableTree> safeVariables;
         if (isStatic) {
-            safeVariableNames = new ArrayList<String>();
+            safeVariables = new ArrayList<VariableTree>();
         } else {
             // TODO: @Felix filter by used variables
             ClassTree classTree = visitorState.getClassTree();
-            safeVariableNames = getSafeClassVariables(classTree);
+            safeVariables = getSafeClassVariables(classTree);
         }
 
         for (int i = 0; i < parameterTypes.size(); i++) {
             AnnotatedTypeMirror parameterType = parameterTypes.get(i);
             if (parameterType.hasAnnotation(SFlowChecker.SAFE)) {
-                safeVariableNames.add(node.getParameters().get(i).getName().toString());
+                safeVariables.add(node.getParameters().get(i));
             }
         }
-
 
 
         System.out.println("=====================================");
@@ -137,8 +97,9 @@ public class SFlowVisitor extends SFlowBaseVisitor {
             safeResult = false;
         }
 
-        String determinesClause = getDeterminesClause(safeVariableNames, safeResult);
-        List<String> jmlComment = makeJMLComment(Collections.singletonList(determinesClause));
+        List<String> jmlComment = ObservationJMLTranslator.TranslateSafeObservationToJML(
+                new SafeObservationExpression(safeVariables, safeResult)
+        );
 
         if (this.checker.getWarningOrErrorSinceReset()) {
             writer.addDocumentationLine(node, "/* @Key: Verify this method. */");
