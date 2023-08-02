@@ -1,5 +1,6 @@
 package checkers.inference.sflow;
 
+import checkers.inference.sflow.quals.Safe;
 import checkers.types.AnnotatedTypeMirror;
 import com.sun.source.tree.*;
 import checkers.util.ElementUtils;
@@ -55,12 +56,7 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         return safeVariableNames;
     }
 
-    @Override
-    public Void visitMethod(MethodTree node, Void p) {
-        // @Felix: @TODO: what to do for poly types
-        this.checker.resetWarningAndErrorFlags();
-        Void result = super.visitMethod(node, p);
-
+    public SafeObservationExpression createSafeObservationExpression(MethodTree node) {
         AnnotatedTypeMirror.AnnotatedExecutableType methodType = atypeFactory.getAnnotatedType(node);
         List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
 
@@ -83,22 +79,23 @@ public class SFlowVisitor extends SFlowBaseVisitor {
             }
         }
 
-
-        System.out.println("=====================================");
-        System.out.println("Method: " + node.getName());
-        System.out.println("Method type: " + methodType);
-        System.out.println("Return type: " + methodType.getReturnType());
-        System.out.println("Is constructor: " + TreeUtils.isConstructor(node));
-        System.out.println("=====================================");
-
         boolean safeResult = methodType.getReturnType().hasAnnotation(SFlowChecker.SAFE);
         // Handle constructors
         if (TreeUtils.isConstructor(node)) {
             safeResult = false;
         }
 
+        return new SafeObservationExpression(safeVariables, safeResult);
+    }
+
+    @Override
+    public Void visitMethod(MethodTree node, Void p) {
+        // @Felix: @TODO: what to do for poly types
+        this.checker.resetWarningAndErrorFlags();
+        Void result = super.visitMethod(node, p);
+
         List<String> jmlComment = ObservationJMLTranslator.TranslateSafeObservationToJML(
-                new SafeObservationExpression(safeVariables, safeResult)
+                createSafeObservationExpression(node)
         );
 
         if (this.checker.getWarningOrErrorSinceReset()) {
