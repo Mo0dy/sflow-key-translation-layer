@@ -1,6 +1,6 @@
 package checkers.inference.sflow;
 
-import checkers.inference.sflow.quals.Safe;
+import checkers.source.Result;
 import checkers.types.AnnotatedTypeMirror;
 import com.sun.source.tree.*;
 import checkers.util.ElementUtils;
@@ -35,6 +35,74 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     public void visit(TreePath path) {
         this.scan(path, null);
         this.create_key_file(path);
+    }
+
+    @Override
+    public Void visitIf(IfTree node, Void p) {
+        Void result = super.visitIf(node, p);
+        ExpressionTree condition = node.getCondition();
+        AnnotatedTypeMirror conditionType = atypeFactory.getAnnotatedType(condition);
+        if (conditionType.hasAnnotation(SFlowChecker.TAINTED)) {
+            StatementTree thenStatement = node.getThenStatement();
+            StatementTree elseStatement = node.getElseStatement();
+
+            if (thenStatement != null) {
+                AnnotatedTypeMirror thenStatementType = atypeFactory.getAnnotatedType(thenStatement);
+                if (thenStatementType.hasAnnotation(SFlowChecker.SAFE)) {
+                    checker.report(Result.failure("sflow.if.then.safe"), node);
+                }
+            }
+
+            if (elseStatement != null) {
+                AnnotatedTypeMirror elseStatementType = atypeFactory.getAnnotatedType(elseStatement);
+                if (elseStatementType.hasAnnotation(SFlowChecker.SAFE)) {
+                    checker.report(Result.failure("sflow.if.else.safe"), node);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static String getObservationExpression(List<String> vars) {
+        if (vars.size() == 0) {
+            return "\\nothing";
+        }
+
+        StringBuilder result = new StringBuilder();
+        int size = vars.size();
+        for (int i = 0; i < size; i++) {
+            result.append(vars.get(i));
+            if (i != size - 1) {
+                result.append(", ");
+            }
+        }
+        return result.toString();
+    }
+
+    private static String getDeterminesClause(List<String> safeVars, boolean safeResult) {
+        StringBuilder result = new StringBuilder("determines ");
+        if (safeResult) {
+            List<String> allSafeVars = new ArrayList<String>(safeVars);
+            allSafeVars.add("\\result");
+            result.append(getObservationExpression(allSafeVars));
+        } else {
+            result.append(getObservationExpression(safeVars));
+        }
+        result.append(" \\by ");
+        result.append(getObservationExpression(safeVars));
+        result.append(";");
+        return result.toString();
+    }
+
+    private static List<String> makeJMLComment(List<String> lines) {
+        List<String> result = new ArrayList<String>();
+        result.add("/*@");
+        for (String line : lines) {
+            result.add("  @ " + line);
+        }
+        result.add("  @*/");
+        return result;
     }
 
     public List<VariableTree> getSafeClassVariables(ClassTree classTree) {
