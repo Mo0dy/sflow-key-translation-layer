@@ -7,8 +7,6 @@ import com.sun.source.util.TreePath;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,11 +37,5 @@ public class AdditionalDocPrinter extends Pretty {
             }
         }
         super.visitMethodDef(tree);
-    }
-
-    public void printTreePath(TreePath path) throws IOException {
-        this.printUnit((JCTree.JCCompilationUnit) path.getCompilationUnit(),
-                (JCTree.JCClassDecl) path.getLeaf());
-
     }
 }
