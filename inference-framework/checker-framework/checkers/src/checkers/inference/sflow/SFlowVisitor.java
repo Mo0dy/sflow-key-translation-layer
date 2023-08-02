@@ -23,6 +23,9 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     private final String TEMP_DIR = "/home/felix/Downloads/sflowtranslationlayer";
     private final String BASE_PATH = "/home/felix/_Uni/BA/Java_Tests";
 
+    /* Stores if the types are evaluated in a tainted context. */
+    private boolean conditionedOnTainted = false;
+
     /** Stores for methods a list of additional docstring lines. */
     private TranslatedSourceWriter writer;
 
@@ -39,29 +42,25 @@ public class SFlowVisitor extends SFlowBaseVisitor {
 
     @Override
     public Void visitIf(IfTree node, Void p) {
-        Void result = super.visitIf(node, p);
         ExpressionTree condition = node.getCondition();
         AnnotatedTypeMirror conditionType = atypeFactory.getAnnotatedType(condition);
-        if (conditionType.hasAnnotation(SFlowChecker.TAINTED)) {
-            StatementTree thenStatement = node.getThenStatement();
-            StatementTree elseStatement = node.getElseStatement();
-
-            if (thenStatement != null) {
-                AnnotatedTypeMirror thenStatementType = atypeFactory.getAnnotatedType(thenStatement);
-                if (thenStatementType.hasAnnotation(SFlowChecker.SAFE)) {
-                    checker.report(Result.failure("sflow.if.then.safe"), node);
-                }
-            }
-
-            if (elseStatement != null) {
-                AnnotatedTypeMirror elseStatementType = atypeFactory.getAnnotatedType(elseStatement);
-                if (elseStatementType.hasAnnotation(SFlowChecker.SAFE)) {
-                    checker.report(Result.failure("sflow.if.else.safe"), node);
-                }
-            }
+        if (conditionType.hasAnnotation(SFlowChecker.TAINTED) && !conditionedOnTainted) {
+            conditionedOnTainted = true;
+            Void result = super.visitIf(node, p);
+            conditionedOnTainted = false;
+            return result;
+        } else {
+            return super.visitIf(node, p);
         }
+    }
 
-        return result;
+    @Override
+    protected void commonAssignmentCheck(AnnotatedTypeMirror varType, AnnotatedTypeMirror valueType, Tree valueTree, String errorKey) {
+        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey);
+
+        if (conditionedOnTainted && varType.hasAnnotation(SFlowChecker.SAFE)) {
+            checker.report(Result.failure("implicit flow", varType, valueType), valueTree);
+        }
     }
 
     private static String getObservationExpression(List<String> vars) {
