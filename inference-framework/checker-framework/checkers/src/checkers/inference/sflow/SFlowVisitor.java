@@ -91,18 +91,16 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     @Override
     public Void visitMethod(MethodTree node, Void p) {
         // @Felix: @TODO: what to do for poly types
-        this.checker.resetWarningAndErrorFlags();
+        checker.resetWarningAndErrorFlags();
         Void result = super.visitMethod(node, p);
 
         List<String> jmlComment = ObservationJMLTranslator.TranslateSafeObservationToJML(
                 createSafeObservationExpression(node)
         );
 
-        if (this.checker.getWarningOrErrorSinceReset()) {
+        if (checker.getWarningOrErrorSinceReset()) {
+            // @Felix: @TODO: Output warning to console that this method should be verified by KeY
             writer.addDocumentationLine(node, "/* @Key: Verify this method. */");
-//            System.out.println("=====================================");
-//            System.out.println("Error found in method: " + node.getName());
-//            System.out.println("=====================================");
         }
         writer.addDocumentationLines(node, jmlComment);
         return result;
