@@ -1,7 +1,9 @@
 package checkers.inference.sflow;
 
+import checkers.inference.sflow.quals.SafeMethod;
 import checkers.source.Result;
 import checkers.types.AnnotatedTypeMirror;
+import checkers.util.AnnotationUtils;
 import com.sun.source.tree.*;
 import checkers.util.ElementUtils;
 import checkers.util.TreeUtils;
@@ -11,6 +13,7 @@ import kit.edu.translation.tools.AdditionalDocPrinter;
 import kit.edu.translation.tools.ObservationJMLTranslator;
 import kit.edu.translation.tools.TranslatedSourceWriter;
 
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Modifier;
 import java.io.File;
 import java.io.FileWriter;
@@ -23,14 +26,17 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     private final String TEMP_DIR = "/home/felix/Downloads/sflowtranslationlayer";
     private final String BASE_PATH = "/home/felix/_Uni/BA/Java_Tests";
 
+    private final AnnotationMirror SAFE_METHOD;
+
     /* Stores if the types are evaluated in a tainted context. */
     private boolean conditionedOnTainted = false;
 
     /** Stores for methods a list of additional docstring lines. */
-    private TranslatedSourceWriter writer;
+    private final TranslatedSourceWriter writer;
 
     public SFlowVisitor(SFlowChecker checker, CompilationUnitTree root) {
         super(checker, root);
+        SAFE_METHOD = checker.annoFactory.fromClass(SafeMethod.class);
         writer = new TranslatedSourceWriter(root);
     }
 
@@ -156,8 +162,45 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     }
 
     @Override
+    public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
+        Void result = super.visitMethodInvocation(node, p);
+
+        if (conditionedOnTainted && !isSafeMethod(node)) {
+            checker.report(Result.failure("implicit flow method needs to be @SafeMethod", node), node);
+        }
+
+        return result;
+    }
+
+    public boolean isSafeMethod(MethodInvocationTree node) {
+        List<? extends AnnotationMirror> annotations = TreeUtils.elementFromUse(node).getAnnotationMirrors();
+        List<AnnotationMirror> annotationsNew = new ArrayList<AnnotationMirror>(annotations);
+        return AnnotationUtils.containsSame(annotationsNew, SAFE_METHOD);
+    }
+
+    public boolean isSafeMethod(MethodTree node) {
+        List<? extends AnnotationMirror> annotations = TreeUtils.elementFromDeclaration(node).getAnnotationMirrors();
+        List<AnnotationMirror> annotationsNew = new ArrayList<AnnotationMirror>(annotations);
+        return AnnotationUtils.containsSame(annotationsNew, SAFE_METHOD);
+    }
+
+    @Override
     public Void visitMethod(MethodTree node, Void p) {
         // @Felix: @TODO: what to do for poly types
+        // @Felix: @TODO: Verify that a safe method does not assign to a safe variable
+        // This can probably be done by setting conditionedOnTainted = true
+        // The warning should probably be different though.
+        // And the KeY verification also.
+        // Print method type:
+
+        System.out.println("Method: " + node.getName()
+                + " " + atypeFactory.getAnnotatedType(node).toString());
+
+        if (isSafeMethod(node)) {
+            System.out.println("SafeMethod");
+        }
+
+
         checker.resetWarningAndErrorFlags();
         Void result = super.visitMethod(node, p);
 
