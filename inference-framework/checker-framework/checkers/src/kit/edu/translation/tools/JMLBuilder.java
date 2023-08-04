@@ -4,11 +4,15 @@ import com.sun.source.tree.VariableTree;
 import kit.edu.translation.core.SafeObservationExpression;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-public class ObservationJMLTranslator {
-    private static List<String> makeJMLComment(List<String> lines) {
+public class JMLBuilder {
+    List<String> lines = new ArrayList<String>();
+
+    public JMLBuilder() {
+    }
+
+    public List<String> makeJMLComment() {
         List<String> result = new ArrayList<String>();
         result.add("/*@");
         for (String line : lines) {
@@ -18,7 +22,7 @@ public class ObservationJMLTranslator {
         return result;
     }
 
-    private static String getObservedVarList(List<String> vars) {
+    private static String getVarList(List<String> vars) {
         if (vars.size() == 0) {
             return "\\nothing";
         }
@@ -36,25 +40,35 @@ public class ObservationJMLTranslator {
 
     private static String getDeterminesClause(SafeObservationExpression oexpr) {
         StringBuilder result = new StringBuilder("determines ");
-        List<String> observedVars = new ArrayList<String>();
-        for (VariableTree var : oexpr.safeVariables) {
-            observedVars.add(var.getName().toString());
-        }
+        List<String> observedVars = toStringVars(oexpr.safeVariables);
         if (oexpr.safeResult) {
             observedVars.add("\\result");
         }
-        result.append(getObservedVarList(observedVars));
+        result.append(getVarList(observedVars));
         result.append(" \\by ");
         if (oexpr.safeResult) {
             // \result only appears in the first part of the determines clause
             observedVars.remove(observedVars.size() - 1);
         }
-        result.append(getObservedVarList(observedVars));
+        result.append(getVarList(observedVars));
         result.append(";");
         return result.toString();
     }
-    public static List<String> TranslateSafeObservationToJML(SafeObservationExpression safeObservationExpression) {
-        return makeJMLComment(Collections.singletonList(getDeterminesClause(safeObservationExpression)));
+    public JMLBuilder addSafeObservation(SafeObservationExpression safeObservationExpression) {
+        lines.add(getDeterminesClause(safeObservationExpression));
+        return this;
     }
 
+    public JMLBuilder addAssignsClause(List<VariableTree> vars) {
+        lines.add("assignable " + getVarList(toStringVars(vars)) + ";");
+        return this;
+    }
+
+    private static List<String> toStringVars(List<VariableTree> vars) {
+        List<String> result = new ArrayList<String>();
+        for (VariableTree var : vars) {
+            result.add(var.getName().toString());
+        }
+        return result;
+    }
 }

@@ -9,16 +9,12 @@ import checkers.util.ElementUtils;
 import checkers.util.TreeUtils;
 import com.sun.source.util.TreePath;
 import kit.edu.translation.core.SafeObservationExpression;
-import kit.edu.translation.tools.AdditionalDocPrinter;
-import kit.edu.translation.tools.ObservationJMLTranslator;
+import kit.edu.translation.tools.JMLBuilder;
 import kit.edu.translation.tools.TranslatedSourceWriter;
 
 import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Modifier;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.*;
 
 public class SFlowVisitor extends SFlowBaseVisitor {
@@ -110,12 +106,13 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         return result;
     }
 
-    public List<VariableTree> getSafeClassVariables(ClassTree classTree) {
+    // @Felix: @TODO: Make this a subtype check rather than a simple hasAnnotation check
+    public List<VariableTree> getClassVariables(ClassTree classTree, AnnotationMirror annotation) {
         List<VariableTree> safeVariableNames = new ArrayList<VariableTree>();
         // find all SAFE class variables:
         for (Tree variableTree : classTree.getMembers()) {
             AnnotatedTypeMirror variableType = atypeFactory.getAnnotatedType(variableTree);
-            if (variableType.hasAnnotation(SFlowChecker.SAFE)) {
+            if (variableType.hasAnnotation(annotation)) {
                 safeVariableNames.add(((VariableTree) variableTree));
             }
         }
@@ -124,7 +121,7 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         if (classTree.getExtendsClause() != null) {
             AnnotatedTypeMirror.AnnotatedDeclaredType superClassType = (AnnotatedTypeMirror.AnnotatedDeclaredType) atypeFactory.getAnnotatedType(classTree.getExtendsClause());
             ClassTree superClassTree = (ClassTree) trees.getTree(superClassType.getUnderlyingType().asElement());
-            safeVariableNames.addAll(getSafeClassVariables(superClassTree));
+            safeVariableNames.addAll(getClassVariables(superClassTree, annotation));
         }
         return safeVariableNames;
     }
@@ -142,7 +139,7 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         } else {
             // TODO: @Felix filter by used variables
             ClassTree classTree = visitorState.getClassTree();
-            safeVariables = getSafeClassVariables(classTree);
+            safeVariables = getClassVariables(classTree, SFlowChecker.SAFE);
         }
 
         for (int i = 0; i < parameterTypes.size(); i++) {
@@ -192,27 +189,30 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         // The warning should probably be different though.
         // And the KeY verification also.
         // Print method type:
+        checker.resetWarningAndErrorFlags();
 
-        System.out.println("Method: " + node.getName()
-                + " " + atypeFactory.getAnnotatedType(node).toString());
-
-        if (isSafeMethod(node)) {
-            System.out.println("SafeMethod");
+        boolean safeMethod = isSafeMethod(node);
+        if (safeMethod) {
+            assert(!conditionedOnTainted);
+            conditionedOnTainted = true;
         }
 
-
-        checker.resetWarningAndErrorFlags();
         Void result = super.visitMethod(node, p);
-
-        List<String> jmlComment = ObservationJMLTranslator.TranslateSafeObservationToJML(
-                createSafeObservationExpression(node)
-        );
+        conditionedOnTainted = false;
 
         if (checker.getWarningOrErrorSinceReset()) {
             // @Felix: @TODO: Output warning to console that this method should be verified by KeY
             writer.addDocumentationLine(node, "/* @Key: Verify this method. */");
         }
-        writer.addDocumentationLines(node, jmlComment);
+
+        JMLBuilder jmlBuilder = new JMLBuilder();
+        jmlBuilder.addSafeObservation(createSafeObservationExpression(node));
+
+        if (safeMethod) {
+            jmlBuilder.addAssignsClause(getClassVariables(visitorState.getClassTree(), SFlowChecker.TAINTED));
+        }
+
+        writer.addDocumentationLines(node, jmlBuilder.makeJMLComment());
         return result;
     }
 
