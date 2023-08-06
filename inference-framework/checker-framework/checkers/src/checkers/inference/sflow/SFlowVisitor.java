@@ -4,9 +4,9 @@ import checkers.inference.sflow.quals.SafeMethod;
 import checkers.source.Result;
 import checkers.types.AnnotatedTypeMirror;
 import checkers.util.AnnotationUtils;
-import com.sun.source.tree.*;
 import checkers.util.ElementUtils;
 import checkers.util.TreeUtils;
+import com.sun.source.tree.*;
 import com.sun.source.util.TreePath;
 import kit.edu.translation.core.SafeObservationExpression;
 import kit.edu.translation.tools.JMLBuilder;
@@ -15,7 +15,8 @@ import kit.edu.translation.tools.TranslatedSourceWriter;
 import javax.lang.model.element.AnnotationMirror;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SFlowVisitor extends SFlowBaseVisitor {
     // @Felix: @TODO: Get this from the command line
@@ -42,11 +43,13 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         this.create_key_file(path);
     }
 
+    private boolean isTaintedCondition(ExpressionTree condition) {
+        return atypeFactory.getAnnotatedType(condition).hasAnnotation(SFlowChecker.TAINTED);
+    }
+
     @Override
     public Void visitIf(IfTree node, Void p) {
-        ExpressionTree condition = node.getCondition();
-        AnnotatedTypeMirror conditionType = atypeFactory.getAnnotatedType(condition);
-        if (conditionType.hasAnnotation(SFlowChecker.TAINTED) && !conditionedOnTainted) {
+        if (isTaintedCondition(node.getCondition()) && !conditionedOnTainted) {
             conditionedOnTainted = true;
             Void result = super.visitIf(node, p);
             conditionedOnTainted = false;
@@ -54,6 +57,99 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         } else {
             return super.visitIf(node, p);
         }
+    }
+
+    @Override
+    public Void visitWhileLoop(WhileLoopTree node, Void unused) {
+        if (isTaintedCondition(node.getCondition()) && !conditionedOnTainted) {
+            conditionedOnTainted = true;
+            Void result = super.visitWhileLoop(node, unused);
+            conditionedOnTainted = false;
+            return result;
+        } else {
+            return super.visitWhileLoop(node, unused);
+        }
+    }
+
+    @Override
+    public Void visitDoWhileLoop(DoWhileLoopTree node, Void unused) {
+        if (isTaintedCondition(node.getCondition()) && !conditionedOnTainted) {
+            conditionedOnTainted = true;
+            Void result = super.visitDoWhileLoop(node, unused);
+            conditionedOnTainted = false;
+            return result;
+        } else {
+            return super.visitDoWhileLoop(node, unused);
+        }
+    }
+
+    @Override
+    public Void visitForLoop(ForLoopTree node, Void unused) {
+        if (isTaintedCondition(node.getCondition()) && !conditionedOnTainted) {
+            conditionedOnTainted = true;
+            Void result = super.visitForLoop(node, unused);
+            conditionedOnTainted = false;
+            return result;
+        } else {
+            return super.visitForLoop(node, unused);
+        }
+    }
+
+    @Override
+    public Void visitEnhancedForLoop(EnhancedForLoopTree node, Void p) {
+        // Print forloop
+        if (isTaintedCondition(node.getExpression()) && !conditionedOnTainted) {
+            conditionedOnTainted = true;
+            Void result = super.visitEnhancedForLoop(node, p);
+            conditionedOnTainted = false;
+            return result;
+        } else {
+            return super.visitEnhancedForLoop(node, p);
+        }
+    }
+
+    @Override
+    public Void visitSwitch(SwitchTree node, Void unused) {
+        if (isTaintedCondition(node.getExpression()) && !conditionedOnTainted) {
+            conditionedOnTainted = true;
+            Void result = super.visitSwitch(node, unused);
+            conditionedOnTainted = false;
+            return result;
+        } else {
+            return super.visitSwitch(node, unused);
+        }
+    }
+
+    @Override
+    public Void visitThrow(ThrowTree node, Void unused) {
+        if (conditionedOnTainted) {
+            checker.report(Result.failure("Throwing under tainted condition can produce implicit flow."), node);
+        }
+        return super.visitThrow(node, unused);
+    }
+
+    @Override
+    public Void visitReturn(ReturnTree node, Void p) {
+        if (conditionedOnTainted) {
+            checker.report(Result.failure("implicit flow"), node);
+        }
+        return super.visitReturn(node, p);
+    }
+
+    @Override
+    public Void visitBreak(BreakTree node, Void unused) {
+        if (conditionedOnTainted) {
+            checker.report(Result.failure("implicit flow"), node);
+        }
+        return super.visitBreak(node, unused);
+    }
+
+    @Override
+    public Void visitContinue(ContinueTree node, Void unused) {
+        if (conditionedOnTainted) {
+            checker.report(Result.failure("implicit flow"), node);
+        }
+        return super.visitContinue(node, unused);
     }
 
     @Override
@@ -189,6 +285,7 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         // The warning should probably be different though.
         // And the KeY verification also.
         // Print method type:
+        System.out.println("Visitin Method: " + node.getName() + " " + atypeFactory.getAnnotatedType(node).toString());
         checker.resetWarningAndErrorFlags();
 
         boolean safeMethod = isSafeMethod(node);
