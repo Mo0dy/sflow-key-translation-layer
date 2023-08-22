@@ -1,24 +1,38 @@
 import checkers.inference.sflow.quals.*;
 
 class TestProgram {
-  public static class A {
-    public @Safe int safe;
-    public @Tainted int tainted;
+  public @Tainted int class_tainted;
+  public @Safe int class_safe;
 
-    @TaintedMethod
-    public void foo() {}
-
-    public void error() {
-      if (tainted == 0) {
-        foo();
-      }
+  public void should_work() {
+    if (class_tainted == 0) {
+      write_tainted();
     }
   }
 
-  public static class B extends A {
-    @SafeMethod
-    public void foo() {
-      safe = 0;
+  public void should_fail() {
+    if (class_tainted == 0) {
+      write_safe();
     }
+  }
+
+  @TaintedMethod
+  public void write_tainted() {
+    class_tainted = 0;
+  }
+
+  @SafeMethod
+  public void write_safe() {
+    class_safe = 0;
+  }
+
+  @TaintedMethod
+  public void incorrect_tainted_annotation() {
+    class_safe = 0;
+  }
+
+  @SafeMethod
+  public void correct_safe_annotation() {
+    class_tainted = 0;
   }
 }

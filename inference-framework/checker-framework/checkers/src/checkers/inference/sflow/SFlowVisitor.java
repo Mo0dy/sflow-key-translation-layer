@@ -1,6 +1,6 @@
 package checkers.inference.sflow;
 
-import checkers.inference.sflow.quals.SafeMethod;
+import checkers.inference.sflow.quals.TaintedMethod;
 import checkers.source.Result;
 import checkers.types.AnnotatedTypeMirror;
 import checkers.util.AnnotationUtils;
@@ -20,7 +20,7 @@ import java.util.List;
 
 public class SFlowVisitor extends SFlowBaseVisitor {
 
-    private final AnnotationMirror SAFE_METHOD;
+    private final AnnotationMirror TAINTED_METHOD;
 
     /* Stores if the types are evaluated in a tainted context. */
     private boolean conditionedOnTainted = false;
@@ -30,7 +30,7 @@ public class SFlowVisitor extends SFlowBaseVisitor {
 
     public SFlowVisitor(SFlowChecker checker, CompilationUnitTree root) {
         super(checker, root);
-        SAFE_METHOD = checker.annoFactory.fromClass(SafeMethod.class);
+        TAINTED_METHOD = checker.annoFactory.fromClass(TaintedMethod.class);
         writer = new TranslatedSourceWriter(root);
     }
 
@@ -255,23 +255,23 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         Void result = super.visitMethodInvocation(node, p);
 
-        if (conditionedOnTainted && !isSafeMethod(node)) {
-            checker.report(Result.failure("implicit flow method needs to be @SafeMethod", node), node);
+        if (conditionedOnTainted && !isTaintedMethod(node)) {
+            checker.report(Result.failure("implicit flow method needs to be @TaintedMethod", node), node);
         }
 
         return result;
     }
 
-    public boolean isSafeMethod(MethodInvocationTree node) {
+    public boolean isTaintedMethod(MethodInvocationTree node) {
         List<? extends AnnotationMirror> annotations = TreeUtils.elementFromUse(node).getAnnotationMirrors();
         List<AnnotationMirror> annotationsNew = new ArrayList<AnnotationMirror>(annotations);
-        return AnnotationUtils.containsSame(annotationsNew, SAFE_METHOD);
+        return AnnotationUtils.containsSame(annotationsNew, TAINTED_METHOD);
     }
 
-    public boolean isSafeMethod(MethodTree node) {
+    public boolean isTaintedMethod(MethodTree node) {
         List<? extends AnnotationMirror> annotations = TreeUtils.elementFromDeclaration(node).getAnnotationMirrors();
         List<AnnotationMirror> annotationsNew = new ArrayList<AnnotationMirror>(annotations);
-        return AnnotationUtils.containsSame(annotationsNew, SAFE_METHOD);
+        return AnnotationUtils.containsSame(annotationsNew, TAINTED_METHOD);
     }
 
     @Override
@@ -285,7 +285,7 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         System.out.println("Visitin Method: " + node.getName() + " " + atypeFactory.getAnnotatedType(node).toString());
         checker.resetWarningAndErrorFlags();
 
-        boolean safeMethod = isSafeMethod(node);
+        boolean safeMethod = isTaintedMethod(node);
         if (safeMethod) {
             assert(!conditionedOnTainted);
             conditionedOnTainted = true;
