@@ -1,5 +1,6 @@
 package checkers.inference.sflow;
 
+import checkers.inference.sflow.quals.SafeMethod;
 import checkers.inference.sflow.quals.TaintedMethod;
 import checkers.source.Result;
 import checkers.types.AnnotatedTypeMirror;
@@ -8,29 +9,34 @@ import checkers.util.ElementUtils;
 import checkers.util.TreeUtils;
 import com.sun.source.tree.*;
 import com.sun.source.util.TreePath;
-import kit.edu.translation.core.SafeObservationExpression;
-import kit.edu.translation.tools.JMLBuilder;
-import kit.edu.translation.tools.TranslatedSourceWriter;
 
-import javax.lang.model.element.AnnotationMirror;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import javax.lang.model.element.AnnotationMirror;
+
+import kit.edu.translation.core.SafeObservationExpression;
+import kit.edu.translation.tools.JMLBuilder;
+import kit.edu.translation.tools.TranslatedSourceWriter;
 
 public class SFlowVisitor extends SFlowBaseVisitor {
 
     private final AnnotationMirror TAINTED_METHOD;
+    private final AnnotationMirror SAFE_METHOD;
 
     /* Stores if the types are evaluated in a tainted context. */
     private boolean conditionedOnTainted = false;
 
-    /** Stores for methods a list of additional docstring lines. */
+    /**
+     * Stores for methods a list of additional docstring lines.
+     */
     private final TranslatedSourceWriter writer;
 
     public SFlowVisitor(SFlowChecker checker, CompilationUnitTree root) {
         super(checker, root);
         TAINTED_METHOD = checker.annoFactory.fromClass(TaintedMethod.class);
+        SAFE_METHOD = checker.annoFactory.fromClass(SafeMethod.class);
         writer = new TranslatedSourceWriter(root);
     }
 
@@ -41,7 +47,8 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     }
 
     private boolean isTaintedCondition(ExpressionTree condition) {
-        return atypeFactory.getAnnotatedType(condition).hasAnnotation(SFlowChecker.TAINTED);
+        return atypeFactory.getAnnotatedType(condition).hasAnnotation(
+                SFlowChecker.TAINTED);
     }
 
     @Override
@@ -120,7 +127,10 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     @Override
     public Void visitThrow(ThrowTree node, Void unused) {
         if (conditionedOnTainted) {
-            checker.report(Result.failure("Throwing under tainted condition can produce implicit flow."), node);
+            checker.report(
+                    Result.failure(
+                            "Throwing under tainted condition can produce implicit flow."),
+                    node);
         }
         return super.visitThrow(node, unused);
     }
@@ -150,11 +160,14 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     }
 
     @Override
-    protected void commonAssignmentCheck(AnnotatedTypeMirror varType, AnnotatedTypeMirror valueType, Tree valueTree, String errorKey) {
+    protected void commonAssignmentCheck(AnnotatedTypeMirror varType,
+                                         AnnotatedTypeMirror valueType,
+                                         Tree valueTree, String errorKey) {
         super.commonAssignmentCheck(varType, valueType, valueTree, errorKey);
 
         if (conditionedOnTainted && varType.hasAnnotation(SFlowChecker.SAFE)) {
-            checker.report(Result.failure("implicit flow", varType, valueType), valueTree);
+            checker.report(Result.failure("implicit flow", varType, valueType),
+                    valueTree);
         }
     }
 
@@ -174,7 +187,8 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         return result.toString();
     }
 
-    private static String getDeterminesClause(List<String> safeVars, boolean safeResult) {
+    private static String getDeterminesClause(List<String> safeVars,
+                                              boolean safeResult) {
         StringBuilder result = new StringBuilder("determines ");
         if (safeResult) {
             List<String> allSafeVars = new ArrayList<String>(safeVars);
@@ -199,12 +213,15 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         return result;
     }
 
-    // @Felix: @TODO: Make this a subtype check rather than a simple hasAnnotation check
-    public List<VariableTree> getClassVariables(ClassTree classTree, AnnotationMirror annotation) {
+    // @Felix: @TODO: Make this a subtype check rather than a simple hasAnnotation
+    // check
+    public List<VariableTree> getClassVariables(ClassTree classTree,
+                                                AnnotationMirror annotation) {
         List<VariableTree> safeVariableNames = new ArrayList<VariableTree>();
         // find all SAFE class variables:
         for (Tree variableTree : classTree.getMembers()) {
-            AnnotatedTypeMirror variableType = atypeFactory.getAnnotatedType(variableTree);
+            AnnotatedTypeMirror variableType =
+                    atypeFactory.getAnnotatedType(variableTree);
             if (variableType.hasAnnotation(annotation)) {
                 safeVariableNames.add(((VariableTree) variableTree));
             }
@@ -212,19 +229,25 @@ public class SFlowVisitor extends SFlowBaseVisitor {
 
         // recursively call for super class
         if (classTree.getExtendsClause() != null) {
-            AnnotatedTypeMirror.AnnotatedDeclaredType superClassType = (AnnotatedTypeMirror.AnnotatedDeclaredType) atypeFactory.getAnnotatedType(classTree.getExtendsClause());
-            ClassTree superClassTree = (ClassTree) trees.getTree(superClassType.getUnderlyingType().asElement());
+            AnnotatedTypeMirror.AnnotatedDeclaredType superClassType =
+                    (AnnotatedTypeMirror.AnnotatedDeclaredType)
+                            atypeFactory.getAnnotatedType(classTree.getExtendsClause());
+            ClassTree superClassTree = (ClassTree) trees.getTree(
+                    superClassType.getUnderlyingType().asElement());
             safeVariableNames.addAll(getClassVariables(superClassTree, annotation));
         }
         return safeVariableNames;
     }
 
-    public SafeObservationExpression createSafeObservationExpression(MethodTree node) {
-        AnnotatedTypeMirror.AnnotatedExecutableType methodType = atypeFactory.getAnnotatedType(node);
+    public SafeObservationExpression
+    createSafeObservationExpression(MethodTree node) {
+        AnnotatedTypeMirror.AnnotatedExecutableType methodType =
+                atypeFactory.getAnnotatedType(node);
         List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
 
         // Find out if Method is static without using TreeUtils
-        boolean isStatic = ElementUtils.isStatic(TreeUtils.elementFromDeclaration(node));
+        boolean isStatic =
+                ElementUtils.isStatic(TreeUtils.elementFromDeclaration(node));
 
         List<VariableTree> safeVariables;
         if (isStatic) {
@@ -242,7 +265,8 @@ public class SFlowVisitor extends SFlowBaseVisitor {
             }
         }
 
-        boolean safeResult = methodType.getReturnType().hasAnnotation(SFlowChecker.SAFE);
+        boolean safeResult =
+                methodType.getReturnType().hasAnnotation(SFlowChecker.SAFE);
         // Handle constructors
         if (TreeUtils.isConstructor(node)) {
             safeResult = false;
@@ -256,38 +280,63 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         Void result = super.visitMethodInvocation(node, p);
 
         if (conditionedOnTainted && !isTaintedMethod(node)) {
-            checker.report(Result.failure("implicit flow method needs to be @TaintedMethod", node), node);
+            checker.report(
+                    Result.failure("implicit flow method needs to be @TaintedMethod",
+                            node),
+                    node);
         }
 
         return result;
     }
 
+    private AnnotationMirror
+    extractMethodTypeAnnotation(List<AnnotationMirror> methodAnnotations,
+                                String methodName) {
+        boolean containsTaintedMethod =
+                AnnotationUtils.containsSame(methodAnnotations, TAINTED_METHOD);
+        boolean containsSafeMethod =
+                AnnotationUtils.containsSame(methodAnnotations, SAFE_METHOD);
+
+        if (containsTaintedMethod && containsSafeMethod) {
+            checker.errorAbort("Method " + methodName + " is both @TaintedMethod and "
+                    + "@SafeMethod.");
+        }
+        if (containsSafeMethod) {
+            return SAFE_METHOD;
+        }
+
+        // Use default method type.
+        return TAINTED_METHOD;
+    }
+
     public boolean isTaintedMethod(MethodInvocationTree node) {
-        List<? extends AnnotationMirror> annotations = TreeUtils.elementFromUse(node).getAnnotationMirrors();
-        List<AnnotationMirror> annotationsNew = new ArrayList<AnnotationMirror>(annotations);
-        return AnnotationUtils.containsSame(annotationsNew, TAINTED_METHOD);
+        List<? extends AnnotationMirror> annotations =
+                TreeUtils.elementFromUse(node).getAnnotationMirrors();
+        List<AnnotationMirror> annotationsNew =
+                new ArrayList<AnnotationMirror>(annotations);
+        return AnnotationUtils.areSame(extractMethodTypeAnnotation(
+                        annotationsNew, node.getMethodSelect().toString()),
+                TAINTED_METHOD);
     }
 
     public boolean isTaintedMethod(MethodTree node) {
-        List<? extends AnnotationMirror> annotations = TreeUtils.elementFromDeclaration(node).getAnnotationMirrors();
-        List<AnnotationMirror> annotationsNew = new ArrayList<AnnotationMirror>(annotations);
-        return AnnotationUtils.containsSame(annotationsNew, TAINTED_METHOD);
+        List<? extends AnnotationMirror> annotations =
+                TreeUtils.elementFromDeclaration(node).getAnnotationMirrors();
+        List<AnnotationMirror> annotationsNew =
+                new ArrayList<AnnotationMirror>(annotations);
+        return AnnotationUtils.areSame(extractMethodTypeAnnotation(
+                        annotationsNew, node.getName().toString()),
+                TAINTED_METHOD);
     }
 
     @Override
     public Void visitMethod(MethodTree node, Void p) {
         // @Felix: @TODO: what to do for poly types
-        // @Felix: @TODO: Verify that a safe method does not assign to a safe variable
-        // This can probably be done by setting conditionedOnTainted = true
-        // The warning should probably be different though.
-        // And the KeY verification also.
-        // Print method type:
-        System.out.println("Visitin Method: " + node.getName() + " " + atypeFactory.getAnnotatedType(node).toString());
         checker.resetWarningAndErrorFlags();
 
         boolean safeMethod = isTaintedMethod(node);
         if (safeMethod) {
-            assert(!conditionedOnTainted);
+            assert (!conditionedOnTainted);
             conditionedOnTainted = true;
         }
 
@@ -295,7 +344,8 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         conditionedOnTainted = false;
 
         if (checker.getWarningOrErrorSinceReset()) {
-            // @Felix: @TODO: Output warning to console that this method should be verified by KeY
+            // @Felix: @TODO: Output warning to console that this method should be
+            // verified by KeY
             writer.addDocumentationLine(node, "/* @Key: Verify this method. */");
         }
 
@@ -303,7 +353,8 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         jmlBuilder.addSafeObservation(createSafeObservationExpression(node));
 
         if (safeMethod) {
-            jmlBuilder.addAssignsClause(getClassVariables(visitorState.getClassTree(), SFlowChecker.TAINTED));
+            jmlBuilder.addAssignsClause(
+                    getClassVariables(visitorState.getClassTree(), SFlowChecker.TAINTED));
         }
 
         writer.addDocumentationLines(node, jmlBuilder.makeJMLComment());
@@ -313,7 +364,8 @@ public class SFlowVisitor extends SFlowBaseVisitor {
     private void create_key_file(TreePath path) {
         // @Felix: @TODO: In the Checker remove the temp folder
         String originalPath = path.getCompilationUnit().getSourceFile().getName();
-        String relativePath = originalPath.substring(checker.getBasePath().length());
+        String relativePath =
+                originalPath.substring(checker.getBasePath().length());
         String outputPath = checker.getTempDir() + relativePath;
         File outputFile = new File(outputPath);
         File outputDir = outputFile.getParentFile();
@@ -326,14 +378,16 @@ public class SFlowVisitor extends SFlowBaseVisitor {
             // Create the output directory if it doesn't exist
             if (!outputDir.exists()) {
                 if (!outputDir.mkdirs()) {
-                    throw new RuntimeException("Failed to create output directory: " + outputDir);
+                    throw new RuntimeException("Failed to create output directory: " +
+                            outputDir);
                 }
             }
 
             // Create the output file if it doesn't exist
             if (!outputFile.exists()) {
                 if (!outputFile.createNewFile()) {
-                    throw new RuntimeException("Failed to create output file: " + outputFile);
+                    throw new RuntimeException("Failed to create output file: " +
+                            outputFile);
                 }
             }
 
