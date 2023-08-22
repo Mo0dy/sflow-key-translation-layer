@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ExecutableElement;
 
 import kit.edu.translation.core.SafeObservationExpression;
 import kit.edu.translation.tools.JMLBuilder;
@@ -327,6 +328,28 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         return AnnotationUtils.areSame(extractMethodTypeAnnotation(
                         annotationsNew, node.getName().toString()),
                 TAINTED_METHOD);
+    }
+
+    public boolean isTaintedMethod(ExecutableElement element) {
+        List<? extends AnnotationMirror> annotations =
+                element.getAnnotationMirrors();
+        List<AnnotationMirror> annotationsNew =
+                new ArrayList<AnnotationMirror>(annotations);
+        return AnnotationUtils.areSame(extractMethodTypeAnnotation(
+                        annotationsNew, element.getSimpleName().toString()),
+                TAINTED_METHOD);
+    }
+
+    @Override
+    protected boolean checkOverride(MethodTree overriderTree, AnnotatedTypeMirror.AnnotatedDeclaredType enclosingType, AnnotatedTypeMirror.AnnotatedExecutableType overridden, AnnotatedTypeMirror.AnnotatedDeclaredType overriddenType, Void p) {
+        boolean overriderIsTaintedMethod = isTaintedMethod(overriderTree);
+        boolean overriddenIsTaintedMethod = isTaintedMethod(overridden.getElement());
+        // annotations need to be contravariant
+        if (!overriderIsTaintedMethod && overriddenIsTaintedMethod) {
+            checker.report(Result.failure("overriding @TaintedMethod with @SafeMethod",
+                    overriderTree), overriderTree);
+        }
+        return super.checkOverride(overriderTree, enclosingType, overridden, overriddenType, p);
     }
 
     @Override
