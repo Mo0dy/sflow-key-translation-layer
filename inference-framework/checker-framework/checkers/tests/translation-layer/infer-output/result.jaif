@@ -1,0 +1,87 @@
+package checkers.inference.reim.quals:
+annotation @Mutable: @java.lang.annotation.Target(value={TYPE_USE,TYPE_PARAMETER})
+annotation @Polyread: @java.lang.annotation.Target(value={TYPE_USE,TYPE_PARAMETER})
+annotation @Readonly: @java.lang.annotation.Target(value={TYPE_USE,TYPE_PARAMETER})
+
+package checkers.inference.sflow.quals:
+annotation @Tainted: @java.lang.annotation.Target(value={TYPE_USE,TYPE_PARAMETER})
+annotation @Poly: @java.lang.annotation.Target(value={TYPE_USE,TYPE_PARAMETER})
+annotation @Safe: @java.lang.annotation.Target(value={TYPE_USE,TYPE_PARAMETER})
+
+package :
+class TestProgram:
+
+    field class_tainted:
+        type: @checkers.inference.reim.quals.Readonly @checkers.inference.sflow.quals.Tainted 
+
+    field class_tainted_arr:
+        type: @checkers.inference.reim.quals.Readonly @checkers.inference.sflow.quals.Tainted 
+            inner-type 0: @checkers.inference.reim.quals.Readonly @checkers.inference.sflow.quals.Tainted 
+
+    field class_safe:
+        type: @checkers.inference.reim.quals.Readonly @checkers.inference.sflow.quals.Safe 
+
+    method <init>()V:
+        return: @checkers.inference.reim.quals.Readonly @checkers.inference.sflow.quals.Tainted 
+        receiver: @checkers.inference.reim.quals.Readonly @checkers.inference.sflow.quals.Tainted 
+
+    method testThrow()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Readonly @checkers.inference.sflow.quals.Tainted 
+
+    method testContinue()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testBreak()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testCaseBreak()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testIf()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testElse()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testElseIf()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testWhile()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testDoWhile()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testForAssign()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testForCond()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testForIncr()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testForIncr2()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testEnhancedFor()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+
+    method testSwitch()V:
+        return: 
+        receiver: @checkers.inference.reim.quals.Mutable @checkers.inference.sflow.quals.Tainted 
+

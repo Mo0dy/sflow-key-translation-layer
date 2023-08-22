@@ -1,0 +1,4 @@
+There are 0 type errors BEFORE resolution:
+
+
+There are 0 errors after merging similar ones

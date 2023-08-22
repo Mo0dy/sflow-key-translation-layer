@@ -1,0 +1,45 @@
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	6	class_tainted		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	7	class_tainted_arr		@Readonly int @Readonly []
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	8	class_safe		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	10	testThrow()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	10	testThrow()		void () @Readonly TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	16	testContinue()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	16	testContinue()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	17	i		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	26	testBreak()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	26	testBreak()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	27	i		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	36	testCaseBreak()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	36	testCaseBreak()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	47	testIf()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	47	testIf()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	53	testElse()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	53	testElse()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	61	testElseIf()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	61	testElseIf()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	69	testWhile()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	69	testWhile()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	70	i		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	77	testDoWhile()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	77	testDoWhile()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	78	i		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	85	testForAssign()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	85	testForAssign()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	86	j		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	88	i		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	93	testForCond()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	93	testForCond()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	94	i		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	99	testForIncr()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	99	testForIncr()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	100	i		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	105	testForIncr2()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	105	testForIncr2()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	106	i		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	111	testEnhancedFor()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	111	testEnhancedFor()		void () @Mutable TestProgram
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	112	i		@Readonly int
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	117	testSwitch()-static		@Readonly
+/home/felix/_Uni/BA/Java_Tests/TestProgram.java	117	testSwitch()		void () @Mutable TestProgram
+INFO: There are 2 (12.5%) readonly, 0 (0.0%) polyread and 14 (87.5%) mutable references out of 16 references
+INFO: Total methods: 15 pure methods: 1(6.6666665%)

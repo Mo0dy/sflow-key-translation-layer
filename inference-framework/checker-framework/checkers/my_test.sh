@@ -1,7 +1,8 @@
 #!/usr/bin/env sh
 
-SFLOW_BIN=/home/felix/_Uni/BA/type-inference/inference-framework/checker-framework/checkers/binary
-QUALS=/home/felix/_Uni/BA/type-inference/inference-framework/checker-framework/checkers/resources/edu/kit/translation/checkers
-BASE_DIR=/home/felix/_Uni/BA/Java_Tests
+CHECKER_FRAMEWORK=/home/felix/_Uni/BA/type-inference/inference-framework/checker-framework
+SFLOW_BIN="$CHECKER_FRAMEWORK/checkers/binary"
+QUALS="$CHECKER_FRAMEWORK/checkers/resources/edu/kit/translation/checkers"
+TESTS_DIR="$CHECKER_FRAMEWORK/checkers/tests/translation-layer"
 
-$SFLOW_BIN/javai-sflow -Aqualspath="$QUALS" -Abasepath="$BASE_DIR" $BASE_DIR/*.java
+$SFLOW_BIN/javai-sflow -Aqualspath="$QUALS" -Abasepath="$BASE_DIR" $TESTS_DIR/*.java
