@@ -3,9 +3,8 @@
  */
 package checkers.inference.sflow;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.*;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,13 +56,10 @@ import checkers.types.AnnotatedTypeMirror.AnnotatedArrayType;
 import checkers.types.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import checkers.util.AnnotationUtils;
 import checkers.util.ElementUtils;
-import checkers.util.InternalUtils;
 import checkers.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
 import checkers.util.TypesUtils;
 
 import com.sun.source.tree.CompilationUnitTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.Tree.Kind;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Type;
@@ -72,11 +68,14 @@ import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.code.Type.TypeVar;
 import com.sun.tools.javac.code.Type.WildcardType;
 
+import org.apache.commons.io.FileUtils;
+
 /**
  * @author huangw5
  * 
  */
-@SupportedOptions({ "warn", "checking", "insertAnnos", "debug", "noReim", "inferLibrary", "polyLibrary", "sourceSinkOnly", "inferAndroidApp" })
+@SupportedOptions({ "warn", "checking", "insertAnnos", "debug", "noReim", "inferLibrary", "polyLibrary", "sourceSinkOnly", "inferAndroidApp",
+"basepath", "qualspath", "tempdir"})
 @TypeQualifiers({ Uncheck.class, Readonly.class, Polyread.class, Mutable.class,
 		Poly.class, Tainted.class, Safe.class, Bottom.class, Top.class })
 public class SFlowChecker extends InferenceChecker {
@@ -103,6 +102,12 @@ public class SFlowChecker extends InferenceChecker {
 	private boolean sourceSinkOnly = false;
 
     private boolean inferAndroidApp = false;
+
+	private String basePath;
+
+	private String qualsPath;
+
+	private String tempDir;
 	
 	@Override
 	public void initChecker(ProcessingEnvironment processingEnv) {
@@ -163,6 +168,25 @@ public class SFlowChecker extends InferenceChecker {
             inferAndroidApp = true;
 		}
 
+		basePath = getOption("basepath", null);
+		if (basePath == null) {
+			errorAbort("basepath is not set\nUse -Abasepath=<path> to set it to the absolute path of the project root.");
+		}
+		qualsPath = getOption("qualspath", null);
+		if (qualsPath == null) {
+			errorAbort("qualspath is not set\nUse -Aqualspath=<path> to set it to the absolute path of the directory containing the type qualifiers.");
+		}
+
+		tempDir = getOption("tempdir", "/tmp/sflowtranslationlayer");
+
+		System.out.println("Resetting temp directory: " + tempDir);
+		deleteDirectory(new File(tempDir));
+		if(!new File(tempDir).mkdirs()) {
+			errorAbort("Cannot create temp directory: " + tempDir);
+		}
+
+		copyQualsToTempDir();
+
 //        if (inferLibrary && polyLibrary) {
 //            throw new RuntimeException("inferLibrary and polyLibrary cannot be true at the same time.");
 //        }
@@ -175,8 +199,19 @@ public class SFlowChecker extends InferenceChecker {
             System.out.println("INFO: inferAndroidApp = " + inferAndroidApp);
         }
 	}
-	
-	
+
+	private void copyQualsToTempDir() {
+		try {
+			// copy the folder at qualsPath into tempDir
+			File qualsDir = new File(qualsPath);
+			copyDirectory(qualsDir, new File(
+					tempDir, qualsDir.getName()));
+		} catch (IOException e) {
+			e.printStackTrace();
+			errorAbort("Cannot copy quals to temp directory: " + tempDir);
+		}
+	}
+
 
 	public boolean isUseReim() {
 		return useReim;
@@ -1413,4 +1448,52 @@ public class SFlowChecker extends InferenceChecker {
 	    return(directory.delete());
 	}
 
+	public static void copyDirectory(File srcDir, File destDir) throws IOException {
+		if (srcDir.isDirectory()) {
+			if (!destDir.exists()) {
+				destDir.mkdir();
+			}
+
+			String[] children = srcDir.list();
+			for (int i = 0; i < children.length; i++) {
+				copyDirectory(new File(srcDir, children[i]), new File(destDir, children[i]));
+			}
+		} else {
+			copyFile(srcDir, destDir);
+		}
+	}
+
+	private static void copyFile(File srcFile, File destFile) throws IOException {
+		if (!destFile.exists()) {
+			destFile.createNewFile();
+		}
+
+		FileChannel sourceChannel = null;
+		FileChannel destinationChannel = null;
+
+		try {
+			sourceChannel = new FileInputStream(srcFile).getChannel();
+			destinationChannel = new FileOutputStream(destFile).getChannel();
+			destinationChannel.transferFrom(sourceChannel, 0, sourceChannel.size());
+		} finally {
+			if (sourceChannel != null) {
+				sourceChannel.close();
+			}
+			if (destinationChannel != null) {
+				destinationChannel.close();
+			}
+		}
+	}
+
+	public String getBasePath() {
+		return basePath;
+	}
+
+	public String getQualsPath() {
+		return qualsPath;
+	}
+
+	public String getTempDir() {
+		return tempDir;
+	}
 }

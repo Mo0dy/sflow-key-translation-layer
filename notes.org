@@ -12,3 +12,24 @@ SFlowVisitor < BaseTypeVisitor<SFlowChecker> < *SourceVisitor* <Void, Void> < Tr
 
 * Pretty Printing
 com.sun.tools.javac.tree.Pretty
+
+* Javac
+Hitchhikers guide to javac: https://openjdk.org/groups/compiler/doc/hhgtjavac/index.html
+
+* Command line Options
+[[https://checkerframework.org/manual/#creating-providing-command-line-options][Manual]]
+
+boolean flags:
+#+begin_src java
+@SupportedLintOptions({"myflag"})
+
+checker.getLintOption("myflag", false) // with default value
+
+//   javac -processor mypackage.MyChecker -Alint=myflag
+
+@SuportedOptions({"myoption"})
+
+checker.getOption("myoption")
+
+//  javac -processor mypackage.MyChecker -Amyoption=p1,p2
+#+end_src

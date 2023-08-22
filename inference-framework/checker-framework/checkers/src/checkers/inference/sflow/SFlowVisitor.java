@@ -19,9 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SFlowVisitor extends SFlowBaseVisitor {
-    // @Felix: @TODO: Get this from the command line
-    private final String TEMP_DIR = "/home/felix/Downloads/sflowtranslationlayer";
-    private final String BASE_PATH = "/home/felix/_Uni/BA/Java_Tests";
 
     private final AnnotationMirror SAFE_METHOD;
 
@@ -315,11 +312,9 @@ public class SFlowVisitor extends SFlowBaseVisitor {
 
     private void create_key_file(TreePath path) {
         // @Felix: @TODO: In the Checker remove the temp folder
-        // @Felix: Output, FileCreation
         String originalPath = path.getCompilationUnit().getSourceFile().getName();
-
-        String relativePath = originalPath.substring(BASE_PATH.length());
-        String outputPath = TEMP_DIR + relativePath;
+        String relativePath = originalPath.substring(checker.getBasePath().length());
+        String outputPath = checker.getTempDir() + relativePath;
         File outputFile = new File(outputPath);
         File outputDir = outputFile.getParentFile();
 

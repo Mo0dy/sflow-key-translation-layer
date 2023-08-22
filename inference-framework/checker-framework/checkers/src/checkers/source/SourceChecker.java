@@ -738,6 +738,27 @@ public abstract class SourceChecker extends AbstractTypeProcessor {
         return def;
     }
 
+
+    /**
+     * {@inheritDoc}
+     *
+     * @see SourceChecker#getLintOption(String,boolean)
+     */
+    public final String getOption(String name, String defaultValue) {
+        Set<String> supportedOptions = this.getSupportedOptions();
+
+        if (!supportedOptions.contains(name)) {
+            errorAbort("Illegal lint option: " + name);
+        }
+
+        Map<String, String> options = processingEnv.getOptions();
+        if (options.containsKey(name)) {
+            return options.get(name);
+        } else {
+            return defaultValue;
+        }
+    }
+
     /**
      * Helper method to find the parent of a lint key.  The lint hierarchy
      * level is donated by a colon ':'.  'all' is the root for all hierarchy.
