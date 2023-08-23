@@ -307,7 +307,7 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         }
 
         // Use default method type.
-        return TAINTED_METHOD;
+        return SAFE_METHOD;
     }
 
     public boolean isTaintedMethod(MethodInvocationTree node) {

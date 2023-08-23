@@ -1385,6 +1385,7 @@ public class SFlowChecker extends InferenceChecker {
 			out.println();
 			return;
 		}
+
 		out.println(extractAnnotations(ref, isAbstract));
 		int i = 0;
 		while (ref instanceof ArrayReference) {
