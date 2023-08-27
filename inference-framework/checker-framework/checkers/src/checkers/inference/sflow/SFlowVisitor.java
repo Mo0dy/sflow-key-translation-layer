@@ -302,8 +302,8 @@ public class SFlowVisitor extends SFlowBaseVisitor {
             checker.errorAbort("Method " + methodName + " is both @TaintedMethod and "
                     + "@SafeMethod.");
         }
-        if (containsSafeMethod) {
-            return SAFE_METHOD;
+        if (containsTaintedMethod) {
+            return TAINTED_METHOD;
         }
 
         // Use default method type.
@@ -315,6 +315,8 @@ public class SFlowVisitor extends SFlowBaseVisitor {
                 TreeUtils.elementFromUse(node).getAnnotationMirrors();
         List<AnnotationMirror> annotationsNew =
                 new ArrayList<AnnotationMirror>(annotations);
+        // print annotations
+        System.out.println("Annotations: " + annotationsNew);
         return AnnotationUtils.areSame(extractMethodTypeAnnotation(
                         annotationsNew, node.getMethodSelect().toString()),
                 TAINTED_METHOD);
@@ -375,7 +377,8 @@ public class SFlowVisitor extends SFlowBaseVisitor {
         JMLBuilder jmlBuilder = new JMLBuilder();
         jmlBuilder.addSafeObservation(createSafeObservationExpression(node));
 
-        if (safeMethod) {
+        // TODO: what should be / shouldn't be assignable in a static method?
+        if (safeMethod && !ElementUtils.isStatic(TreeUtils.elementFromDeclaration(node))) {
             jmlBuilder.addAssignsClause(
                     getClassVariables(visitorState.getClassTree(), SFlowChecker.TAINTED));
         }
