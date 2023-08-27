@@ -315,8 +315,6 @@ public class SFlowVisitor extends SFlowBaseVisitor {
                 TreeUtils.elementFromUse(node).getAnnotationMirrors();
         List<AnnotationMirror> annotationsNew =
                 new ArrayList<AnnotationMirror>(annotations);
-        // print annotations
-        System.out.println("Annotations: " + annotationsNew);
         return AnnotationUtils.areSame(extractMethodTypeAnnotation(
                         annotationsNew, node.getMethodSelect().toString()),
                 TAINTED_METHOD);
